@@ -3,6 +3,7 @@ import pandas as pd
 import PyPDF2
 import os
 import difflib
+import time
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -20,6 +21,36 @@ ALLOWED_EXTENSIONS = {'pdf', 'xlsx', 'xls'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def safe_remove_file(file_path, max_retries=3):
+    """파일을 안전하게 삭제하는 함수"""
+    for attempt in range(max_retries):
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                return True
+        except OSError as e:
+            if attempt < max_retries - 1:
+                time.sleep(0.1)  # 잠시 대기 후 재시도
+                continue
+            else:
+                print(f"파일 삭제 실패 (시도 {max_retries}회): {file_path} - {e}")
+                return False
+    return False
+
+def cleanup_uploads_folder():
+    """업로드 폴더의 오래된 파일들을 정리하는 함수"""
+    try:
+        uploads_dir = app.config['UPLOAD_FOLDER']
+        if os.path.exists(uploads_dir):
+            for filename in os.listdir(uploads_dir):
+                file_path = os.path.join(uploads_dir, filename)
+                if os.path.isfile(file_path):
+                    # 파일이 1시간 이상 오래된 경우 삭제
+                    if time.time() - os.path.getmtime(file_path) > 3600:
+                        safe_remove_file(file_path)
+    except Exception as e:
+        print(f"업로드 폴더 정리 중 오류: {e}")
 
 def extract_pdf_text(pdf_path):
     try:
@@ -89,6 +120,9 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_files():
     try:
+        # 업로드 폴더 정리
+        cleanup_uploads_folder()
+        
         if 'pdf_file' not in request.files or 'excel_file' not in request.files:
             return jsonify({"error": "PDF와 엑셀 파일을 모두 업로드해주세요."}), 400
         
@@ -114,8 +148,9 @@ def upload_files():
         excel_data = extract_excel_data(excel_path)
         differences = compare_text_content(pdf_text, excel_data)
         
-        os.remove(pdf_path)
-        os.remove(excel_path)
+        # 파일 삭제 시 안전한 오류 처리
+        safe_remove_file(pdf_path)
+        safe_remove_file(excel_path)
         
         return jsonify({
             "success": True,
@@ -128,4 +163,4 @@ def upload_files():
         return jsonify({"error": f"처리 중 오류가 발생했습니다: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
