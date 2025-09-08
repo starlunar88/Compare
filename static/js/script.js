@@ -246,19 +246,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function extractExcelText(excelData) {
         let text = '';
+        console.log('extractExcelText 입력 데이터:', excelData);
+        
         Object.keys(excelData).forEach(sheetName => {
+            console.log(`시트 '${sheetName}' 처리 중:`, excelData[sheetName]);
+            
             if (Array.isArray(excelData[sheetName])) {
-                excelData[sheetName].forEach(row => {
+                excelData[sheetName].forEach((row, index) => {
+                    console.log(`행 ${index}:`, row);
+                    
                     if (typeof row === 'object' && row !== null) {
                         Object.values(row).forEach(value => {
                             if (value && value.toString().trim()) {
                                 text += value.toString().trim() + ' ';
+                                console.log(`추가된 값: "${value}"`);
                             }
                         });
                     }
                 });
             }
         });
+        
+        console.log('최종 추출된 텍스트:', text.trim());
         return text.trim();
     }
 

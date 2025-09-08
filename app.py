@@ -66,34 +66,29 @@ def extract_pdf_text(pdf_path):
 def extract_excel_data(excel_path):
     try:
         print(f"엑셀 파일 경로: {excel_path}")
-        excel_file = pd.ExcelFile(excel_path)
-        print(f"시트 이름들: {excel_file.sheet_names}")
-        all_data = {}
         
-        for sheet_name in excel_file.sheet_names:
-            print(f"시트 '{sheet_name}' 처리 중...")
-            df = pd.read_excel(excel_path, sheet_name=sheet_name)
-            print(f"데이터프레임 형태: {df.shape}")
-            print(f"데이터프레임 내용:\n{df}")
-            
-            df = df.fillna('')
-            
-            # 헤더를 제거하고 순수 데이터만 추출
-            data_rows = []
-            for _, row in df.iterrows():
-                row_data = {}
-                for col, value in row.items():
-                    if pd.notna(value) and str(value).strip():
-                        row_data[str(col)] = str(value).strip()
-                if row_data:  # 빈 행이 아닌 경우만 추가
-                    data_rows.append(row_data)
-            
-            print(f"추출된 데이터 행 수: {len(data_rows)}")
-            print(f"추출된 데이터: {data_rows}")
-            all_data[sheet_name] = data_rows
+        # 더 간단한 방식으로 엑셀 읽기
+        df = pd.read_excel(excel_path, sheet_name=0)  # 첫 번째 시트만 읽기
+        print(f"데이터프레임 형태: {df.shape}")
+        print(f"데이터프레임 내용:\n{df}")
         
-        print(f"최종 엑셀 데이터: {all_data}")
-        return all_data
+        # 모든 값을 문자열로 변환하고 빈 값 제거
+        all_values = []
+        for _, row in df.iterrows():
+            for value in row:
+                if pd.notna(value) and str(value).strip():
+                    all_values.append(str(value).strip())
+        
+        print(f"추출된 모든 값: {all_values}")
+        
+        # 간단한 형태로 반환
+        result = {
+            "Sheet1": [{"value": val} for val in all_values]
+        }
+        
+        print(f"최종 엑셀 데이터: {result}")
+        return result
+        
     except Exception as e:
         print(f"엑셀 읽기 오류: {str(e)}")
         return {"error": f"엑셀 읽기 오류: {str(e)}"}
