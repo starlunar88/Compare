@@ -71,7 +71,18 @@ def extract_excel_data(excel_path):
         for sheet_name in excel_file.sheet_names:
             df = pd.read_excel(excel_path, sheet_name=sheet_name)
             df = df.fillna('')
-            all_data[sheet_name] = df.to_dict('records')
+            
+            # 헤더를 제거하고 순수 데이터만 추출
+            data_rows = []
+            for _, row in df.iterrows():
+                row_data = {}
+                for col, value in row.items():
+                    if pd.notna(value) and str(value).strip():
+                        row_data[str(col)] = str(value).strip()
+                if row_data:  # 빈 행이 아닌 경우만 추가
+                    data_rows.append(row_data)
+            
+            all_data[sheet_name] = data_rows
         
         return all_data
     except Exception as e:
@@ -86,11 +97,11 @@ def compare_text_content(pdf_text, excel_data):
             differences.append({"type": "error", "message": data["error"]})
             return differences
             
-        excel_text += f"=== {sheet_name} ===\n"
+        # 시트 이름과 구조 정보 없이 순수 데이터만 추출
         for row in data:
             for key, value in row.items():
-                excel_text += f"{key}: {value}\n"
-        excel_text += "\n"
+                if value and str(value).strip():  # 빈 값이 아닌 경우만
+                    excel_text += f"{value}\n"
     
     pdf_lines = pdf_text.split('\n')
     excel_lines = excel_text.split('\n')
@@ -100,8 +111,18 @@ def compare_text_content(pdf_text, excel_data):
     if diff:
         differences.append({"type": "text_diff", "content": diff})
     
-    pdf_words = set(pdf_text.lower().split())
-    excel_words = set(excel_text.lower().split())
+    # 공백과 특수문자 정리 후 단어 비교
+    import re
+    
+    pdf_clean = re.sub(r'[^\w\s]', ' ', pdf_text.lower())
+    excel_clean = re.sub(r'[^\w\s]', ' ', excel_text.lower())
+    
+    pdf_words = set(pdf_clean.split())
+    excel_words = set(excel_clean.split())
+    
+    # 빈 문자열과 숫자만 있는 단어 제외
+    pdf_words = {word for word in pdf_words if word and len(word) > 0}
+    excel_words = {word for word in excel_words if word and len(word) > 0}
     
     only_in_pdf = pdf_words - excel_words
     if only_in_pdf:
