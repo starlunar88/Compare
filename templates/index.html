@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF-엑셀 비교 도구</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄�� PDF-엑셀 파일 비교 도구</h1>
+            <p>PDF와 엑셀 파일의 내용을 비교하여 차이점을 찾아보세요</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="file-input-group">
+                        <div class="file-input">
+                            <label for="pdfFile">PDF 파일 선택</label>
+                            <input type="file" id="pdfFile" name="pdf_file" accept=".pdf" required>
+                            <span class="file-name" id="pdfFileName">파일을 선택하세요</span>
+                        </div>
+                        
+                        <div class="file-input">
+                            <label for="excelFile">엑셀 파일 선택</label>
+                            <input type="file" id="excelFile" name="excel_file" accept=".xlsx,.xls" required>
+                            <span class="file-name" id="excelFileName">파일을 선택하세요</span>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="compare-btn">
+                        <span class="btn-text">비교하기</span>
+                        <span class="btn-loading" style="display: none;">처리 중...</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>비교 결과</h2>
+                <div id="resultsContent"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
