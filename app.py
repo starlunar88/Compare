@@ -101,18 +101,17 @@ def extract_excel_data(excel_path):
                 print(f"방법2 실패: {e2}")
                 
                 try:
-                    # 방법 3: xlrd로 읽기 (구형 엑셀)
-                    import xlrd
-                    workbook = xlrd.open_workbook(excel_path)
-                    sheet = workbook.sheet_by_index(0)
-                    print(f"방법3 - 시트 행수: {sheet.nrows}, 열수: {sheet.ncols}")
+                    # 방법 3: 다른 시트로 시도
+                    df = pd.read_excel(excel_path, sheet_name=None)  # 모든 시트 읽기
+                    print(f"방법3 - 모든 시트: {list(df.keys())}")
                     
-                    for row_idx in range(sheet.nrows):
-                        for col_idx in range(sheet.ncols):
-                            value = sheet.cell_value(row_idx, col_idx)
-                            if value and str(value).strip():
-                                all_values.append(str(value).strip())
-                                
+                    for sheet_name, sheet_df in df.items():
+                        print(f"시트 '{sheet_name}' 처리 중...")
+                        for _, row in sheet_df.iterrows():
+                            for value in row:
+                                if pd.notna(value) and str(value).strip():
+                                    all_values.append(str(value).strip())
+                                    
                 except Exception as e3:
                     print(f"방법3 실패: {e3}")
         
