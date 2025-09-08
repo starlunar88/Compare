@@ -101,10 +101,10 @@ def compare_text_content(pdf_text, excel_data):
         for row in data:
             for key, value in row.items():
                 if value and str(value).strip():  # 빈 값이 아닌 경우만
-                    excel_text += f"{value}\n"
+                    excel_text += f"{value} "
     
     pdf_lines = pdf_text.split('\n')
-    excel_lines = excel_text.split('\n')
+    excel_lines = excel_text.strip().split()
     
     diff = list(difflib.unified_diff(pdf_lines, excel_lines, fromfile='PDF', tofile='Excel', lineterm=''))
     

@@ -184,6 +184,37 @@ header p {
     font-size: 0.8rem;
 }
 
+/* 차이점 강조 스타일 */
+.diff-highlight {
+    background-color: #ffebee;
+    color: #d32f2f;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+    border: 1px solid #ffcdd2;
+}
+
+.diff-content .diff-highlight {
+    background-color: #ffebee;
+    color: #d32f2f;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+    border: 1px solid #ffcdd2;
+    display: inline-block;
+    margin: 1px;
+}
+
+/* PDF와 엑셀 데이터에서 차이점 강조 */
+.pdf-diff, .excel-diff {
+    background-color: #ffebee;
+    color: #d32f2f;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+    border: 1px solid #ffcdd2;
+}
+
 .loading {
     text-align: center;
     padding: 40px;

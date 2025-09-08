@@ -64,29 +64,41 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayResults(result) {
         resultsContent.innerHTML = '';
         
-        // PDF 텍스트 미리보기
+        // 차이점 분석
+        const differences = analyzeDifferences(result);
+        
+        // PDF 텍스트 미리보기 (차이점 강조)
         if (result.pdf_text) {
-            const pdfPreview = createPreviewSection('PDF 내용 미리보기', result.pdf_text);
+            const highlightedPdfText = highlightDifferences(result.pdf_text, differences.pdfOnly);
+            const pdfPreview = createPreviewSection('PDF 내용 미리보기', highlightedPdfText);
             resultsContent.appendChild(pdfPreview);
         }
         
-        // 엑셀 데이터 미리보기
+        // 엑셀 데이터 미리보기 (차이점 강조)
         if (result.excel_data && !result.excel_data.error) {
-            const excelPreview = createExcelPreview(result.excel_data);
+            const excelText = extractExcelText(result.excel_data);
+            const highlightedExcelText = highlightDifferences(excelText, differences.excelOnly);
+            const excelPreview = createExcelPreviewWithHighlight(highlightedExcelText);
             resultsContent.appendChild(excelPreview);
         }
         
-        // 차이점 표시
-        if (result.differences && result.differences.length > 0) {
-            const differencesSection = document.createElement('div');
-            differencesSection.innerHTML = '<h3>🔍 발견된 차이점</h3>';
+        // 차이점 요약 표시
+        if (differences.pdfOnly.length > 0 || differences.excelOnly.length > 0) {
+            const summarySection = document.createElement('div');
+            summarySection.className = 'diff-item';
+            summarySection.style.background = '#fff3e0';
+            summarySection.style.borderColor = '#ff9800';
+            summarySection.innerHTML = '<h3>📋 차이점 요약</h3>';
             
-            result.differences.forEach(diff => {
-                const diffElement = createDifferenceElement(diff);
-                differencesSection.appendChild(diffElement);
-            });
+            if (differences.pdfOnly.length > 0) {
+                summarySection.innerHTML += `<p><strong>PDF에만 있는 내용:</strong> <span class="diff-highlight">${differences.pdfOnly.join(', ')}</span></p>`;
+            }
             
-            resultsContent.appendChild(differencesSection);
+            if (differences.excelOnly.length > 0) {
+                summarySection.innerHTML += `<p><strong>엑셀에만 있는 내용:</strong> <span class="diff-highlight">${differences.excelOnly.join(', ')}</span></p>`;
+            }
+            
+            resultsContent.appendChild(summarySection);
         } else {
             const noDiffElement = document.createElement('div');
             noDiffElement.className = 'diff-item';
@@ -198,5 +210,65 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         resultsSection.style.display = 'block';
         resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function analyzeDifferences(result) {
+        const differences = { pdfOnly: [], excelOnly: [] };
+        
+        if (result.differences) {
+            result.differences.forEach(diff => {
+                if (diff.type === 'only_in_pdf') {
+                    differences.pdfOnly = diff.content || [];
+                } else if (diff.type === 'only_in_excel') {
+                    differences.excelOnly = diff.content || [];
+                }
+            });
+        }
+        
+        return differences;
+    }
+
+    function extractExcelText(excelData) {
+        let text = '';
+        Object.keys(excelData).forEach(sheetName => {
+            excelData[sheetName].forEach(row => {
+                Object.values(row).forEach(value => {
+                    if (value && value.toString().trim()) {
+                        text += value.toString().trim() + ' ';
+                    }
+                });
+            });
+        });
+        return text.trim();
+    }
+
+    function highlightDifferences(text, diffWords) {
+        if (!diffWords || diffWords.length === 0) {
+            return text;
+        }
+        
+        let highlightedText = text;
+        diffWords.forEach(word => {
+            if (word && word.toString().trim()) {
+                const regex = new RegExp(`\\b${word.toString().trim()}\\b`, 'g');
+                highlightedText = highlightedText.replace(regex, `<span class="diff-highlight">${word}</span>`);
+            }
+        });
+        
+        return highlightedText;
+    }
+
+    function createExcelPreviewWithHighlight(highlightedText) {
+        const section = document.createElement('div');
+        section.className = 'diff-item';
+        section.style.background = '#f0fff0';
+        section.style.borderColor = '#32cd32';
+        
+        section.innerHTML = `
+            <h3>📊 엑셀 데이터 미리보기</h3>
+            <div class="diff-content">${highlightedText}</div>
+        `;
+        
+        return section;
     }
 });
