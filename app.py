@@ -66,20 +66,60 @@ def extract_pdf_text(pdf_path):
 def extract_excel_data(excel_path):
     try:
         print(f"엑셀 파일 경로: {excel_path}")
+        print(f"파일 존재 여부: {os.path.exists(excel_path)}")
         
-        # 더 간단한 방식으로 엑셀 읽기
-        df = pd.read_excel(excel_path, sheet_name=0)  # 첫 번째 시트만 읽기
-        print(f"데이터프레임 형태: {df.shape}")
-        print(f"데이터프레임 내용:\n{df}")
-        
-        # 모든 값을 문자열로 변환하고 빈 값 제거
+        # 여러 방법으로 엑셀 읽기 시도
         all_values = []
-        for _, row in df.iterrows():
-            for value in row:
-                if pd.notna(value) and str(value).strip():
-                    all_values.append(str(value).strip())
+        
+        try:
+            # 방법 1: 기본 pandas 읽기
+            df = pd.read_excel(excel_path, sheet_name=0, header=None)
+            print(f"방법1 - 데이터프레임 형태: {df.shape}")
+            print(f"방법1 - 데이터프레임 내용:\n{df}")
+            
+            for _, row in df.iterrows():
+                for value in row:
+                    if pd.notna(value) and str(value).strip():
+                        all_values.append(str(value).strip())
+                        
+        except Exception as e1:
+            print(f"방법1 실패: {e1}")
+            
+            try:
+                # 방법 2: openpyxl로 직접 읽기
+                from openpyxl import load_workbook
+                wb = load_workbook(excel_path, data_only=True)
+                ws = wb.active
+                print(f"방법2 - 워크시트 활성화됨")
+                
+                for row in ws.iter_rows(values_only=True):
+                    for value in row:
+                        if value is not None and str(value).strip():
+                            all_values.append(str(value).strip())
+                            
+            except Exception as e2:
+                print(f"방법2 실패: {e2}")
+                
+                try:
+                    # 방법 3: xlrd로 읽기 (구형 엑셀)
+                    import xlrd
+                    workbook = xlrd.open_workbook(excel_path)
+                    sheet = workbook.sheet_by_index(0)
+                    print(f"방법3 - 시트 행수: {sheet.nrows}, 열수: {sheet.ncols}")
+                    
+                    for row_idx in range(sheet.nrows):
+                        for col_idx in range(sheet.ncols):
+                            value = sheet.cell_value(row_idx, col_idx)
+                            if value and str(value).strip():
+                                all_values.append(str(value).strip())
+                                
+                except Exception as e3:
+                    print(f"방법3 실패: {e3}")
         
         print(f"추출된 모든 값: {all_values}")
+        
+        if not all_values:
+            return {"error": "엑셀 파일에서 데이터를 찾을 수 없습니다."}
         
         # 간단한 형태로 반환
         result = {

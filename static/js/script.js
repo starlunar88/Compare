@@ -67,10 +67,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 차이점 분석
         const differences = analyzeDifferences(result);
         
-        // PDF 내용 표시 (왼쪽)
+        // PDF 내용 표시 (왼쪽) - 강조 없이 원본 텍스트만
         if (result.pdf_text) {
-            const highlightedPdfText = highlightDifferences(result.pdf_text, differences.pdfOnly);
-            pdfContent.innerHTML = highlightedPdfText;
+            pdfContent.innerHTML = result.pdf_text;
         } else {
             pdfContent.innerHTML = '<p style="color: #666;">PDF 내용을 불러올 수 없습니다.</p>';
         }
@@ -86,8 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('텍스트 길이:', excelText.length);
             
             if (excelText && excelText.trim()) {
-                const highlightedExcelText = highlightDifferences(excelText, differences.excelOnly);
-                excelContent.innerHTML = highlightedExcelText;
+                // 엑셀 내용도 강조 없이 원본 텍스트만 표시
+                excelContent.innerHTML = excelText;
             } else {
                 excelContent.innerHTML = '<p style="color: #666;">엑셀에서 텍스트를 추출할 수 없습니다.</p>';
             }
@@ -99,32 +98,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 비교 결과 표시 (오른쪽)
-        if (differences.pdfOnly.length > 0 || differences.excelOnly.length > 0) {
-            let diffHtml = '<div style="margin-bottom: 15px;">';
-            
-            if (differences.pdfOnly.length > 0) {
-                diffHtml += `<p><strong>📄 PDF에만 있는 내용:</strong></p>`;
-                diffHtml += `<div style="margin-bottom: 10px;">`;
-                differences.pdfOnly.forEach(word => {
-                    diffHtml += `<span class="diff-highlight" style="margin-right: 5px;">${word}</span>`;
-                });
-                diffHtml += `</div>`;
+        // 비교 결과 표시 (오른쪽) - 문자 단위 차이점 강조
+        if (result.pdf_text && result.excel_data && !result.excel_data.error) {
+            const excelText = extractExcelText(result.excel_data);
+            if (excelText && excelText.trim()) {
+                const diffHtml = createCharacterLevelDiff(result.pdf_text, excelText);
+                diffContent.innerHTML = diffHtml;
+            } else {
+                diffContent.innerHTML = '<div style="text-align: center; color: #666;">엑셀 데이터를 비교할 수 없습니다.</div>';
             }
-            
-            if (differences.excelOnly.length > 0) {
-                diffHtml += `<p><strong>📊 엑셀에만 있는 내용:</strong></p>`;
-                diffHtml += `<div>`;
-                differences.excelOnly.forEach(word => {
-                    diffHtml += `<span class="diff-highlight" style="margin-right: 5px;">${word}</span>`;
-                });
-                diffHtml += `</div>`;
-            }
-            
-            diffHtml += '</div>';
-            diffContent.innerHTML = diffHtml;
         } else {
-            diffContent.innerHTML = '<div style="text-align: center; color: #4caf50; font-weight: bold;">✅ 차이점 없음<br><small>PDF와 엑셀 파일의 내용이 일치합니다.</small></div>';
+            diffContent.innerHTML = '<div style="text-align: center; color: #666;">비교할 데이터가 없습니다.</div>';
         }
         
         comparisonLayout.style.display = 'grid';
@@ -299,5 +283,83 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         return section;
+    }
+
+    function createCharacterLevelDiff(pdfText, excelText) {
+        // 공백 제거하고 비교
+        const pdfClean = pdfText.replace(/\s+/g, '');
+        const excelClean = excelText.replace(/\s+/g, '');
+        
+        let diffHtml = '<div style="font-family: monospace; line-height: 1.8;">';
+        diffHtml += '<h4 style="margin-bottom: 15px; color: #333;">🔍 문자 단위 차이점</h4>';
+        
+        // PDF와 Excel 텍스트를 나란히 표시
+        diffHtml += '<div style="margin-bottom: 10px;">';
+        diffHtml += '<strong>PDF:</strong> ';
+        diffHtml += highlightCharacterDifferences(pdfClean, excelClean, 'pdf');
+        diffHtml += '</div>';
+        
+        diffHtml += '<div style="margin-bottom: 15px;">';
+        diffHtml += '<strong>Excel:</strong> ';
+        diffHtml += highlightCharacterDifferences(excelClean, pdfClean, 'excel');
+        diffHtml += '</div>';
+        
+        // 차이점 요약
+        const differences = findCharacterDifferences(pdfClean, excelClean);
+        if (differences.length > 0) {
+            diffHtml += '<div style="margin-top: 15px; padding: 10px; background: #fff3e0; border-radius: 5px;">';
+            diffHtml += '<strong>차이점 요약:</strong><br>';
+            differences.forEach(diff => {
+                diffHtml += `• ${diff}<br>`;
+            });
+            diffHtml += '</div>';
+        } else {
+            diffHtml += '<div style="text-align: center; color: #4caf50; font-weight: bold; margin-top: 15px;">✅ 차이점 없음</div>';
+        }
+        
+        diffHtml += '</div>';
+        return diffHtml;
+    }
+
+    function highlightCharacterDifferences(text1, text2, type) {
+        let result = '';
+        const maxLength = Math.max(text1.length, text2.length);
+        
+        for (let i = 0; i < maxLength; i++) {
+            const char1 = text1[i] || '';
+            const char2 = text2[i] || '';
+            
+            if (char1 !== char2) {
+                // 다른 문자는 빨간색으로 강조
+                result += `<span style="background-color: #ffebee; color: #d32f2f; font-weight: bold; padding: 2px 4px; border-radius: 3px; border: 1px solid #ffcdd2;">${char1}</span>`;
+            } else {
+                // 같은 문자는 검정색
+                result += `<span style="color: #000;">${char1}</span>`;
+            }
+        }
+        
+        return result;
+    }
+
+    function findCharacterDifferences(text1, text2) {
+        const differences = [];
+        const maxLength = Math.max(text1.length, text2.length);
+        
+        for (let i = 0; i < maxLength; i++) {
+            const char1 = text1[i] || '';
+            const char2 = text2[i] || '';
+            
+            if (char1 !== char2) {
+                if (char1 && char2) {
+                    differences.push(`위치 ${i+1}: "${char1}" → "${char2}"`);
+                } else if (char1) {
+                    differences.push(`위치 ${i+1}: "${char1}" (PDF에만 있음)`);
+                } else if (char2) {
+                    differences.push(`위치 ${i+1}: "${char2}" (Excel에만 있음)`);
+                }
+            }
+        }
+        
+        return differences;
     }
 });
