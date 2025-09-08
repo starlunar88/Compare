@@ -37,9 +37,21 @@
                 </form>
             </div>
 
-            <div class="results-section" id="resultsSection" style="display: none;">
-                <h2>비교 결과</h2>
-                <div id="resultsContent"></div>
+            <div class="comparison-layout" id="comparisonLayout" style="display: none;">
+                <div class="comparison-column pdf-column">
+                    <h3>📄 PDF 내용</h3>
+                    <div class="content-box" id="pdfContent"></div>
+                </div>
+                
+                <div class="comparison-column excel-column">
+                    <h3>📊 엑셀 내용</h3>
+                    <div class="content-box" id="excelContent"></div>
+                </div>
+                
+                <div class="comparison-column diff-column">
+                    <h3>🔍 비교 결과</h3>
+                    <div class="content-box" id="diffContent"></div>
+                </div>
             </div>
         </main>
     </div>

@@ -4,8 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const excelFileInput = document.getElementById('excelFile');
     const pdfFileName = document.getElementById('pdfFileName');
     const excelFileName = document.getElementById('excelFileName');
-    const resultsSection = document.getElementById('resultsSection');
-    const resultsContent = document.getElementById('resultsContent');
+    const comparisonLayout = document.getElementById('comparisonLayout');
+    const pdfContent = document.getElementById('pdfContent');
+    const excelContent = document.getElementById('excelContent');
+    const diffContent = document.getElementById('diffContent');
     const compareBtn = document.querySelector('.compare-btn');
     const btnText = document.querySelector('.btn-text');
     const btnLoading = document.querySelector('.btn-loading');
@@ -62,54 +64,63 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function displayResults(result) {
-        resultsContent.innerHTML = '';
-        
         // 차이점 분석
         const differences = analyzeDifferences(result);
         
-        // PDF 텍스트 미리보기 (차이점 강조)
+        // PDF 내용 표시 (왼쪽)
         if (result.pdf_text) {
             const highlightedPdfText = highlightDifferences(result.pdf_text, differences.pdfOnly);
-            const pdfPreview = createPreviewSection('PDF 내용 미리보기', highlightedPdfText);
-            resultsContent.appendChild(pdfPreview);
+            pdfContent.innerHTML = highlightedPdfText;
+        } else {
+            pdfContent.innerHTML = '<p style="color: #666;">PDF 내용을 불러올 수 없습니다.</p>';
         }
         
-        // 엑셀 데이터 미리보기 (차이점 강조)
+        // 엑셀 내용 표시 (중간)
         if (result.excel_data && !result.excel_data.error) {
+            console.log('Excel data:', result.excel_data);
             const excelText = extractExcelText(result.excel_data);
-            const highlightedExcelText = highlightDifferences(excelText, differences.excelOnly);
-            const excelPreview = createExcelPreviewWithHighlight(highlightedExcelText);
-            resultsContent.appendChild(excelPreview);
+            console.log('Extracted Excel text:', excelText);
+            
+            if (excelText) {
+                const highlightedExcelText = highlightDifferences(excelText, differences.excelOnly);
+                excelContent.innerHTML = highlightedExcelText;
+            } else {
+                excelContent.innerHTML = '<p style="color: #666;">엑셀 내용을 불러올 수 없습니다.</p>';
+            }
+        } else {
+            excelContent.innerHTML = '<p style="color: #666;">엑셀 데이터를 불러올 수 없습니다.</p>';
         }
         
-        // 차이점 요약 표시
+        // 비교 결과 표시 (오른쪽)
         if (differences.pdfOnly.length > 0 || differences.excelOnly.length > 0) {
-            const summarySection = document.createElement('div');
-            summarySection.className = 'diff-item';
-            summarySection.style.background = '#fff3e0';
-            summarySection.style.borderColor = '#ff9800';
-            summarySection.innerHTML = '<h3>📋 차이점 요약</h3>';
+            let diffHtml = '<div style="margin-bottom: 15px;">';
             
             if (differences.pdfOnly.length > 0) {
-                summarySection.innerHTML += `<p><strong>PDF에만 있는 내용:</strong> <span class="diff-highlight">${differences.pdfOnly.join(', ')}</span></p>`;
+                diffHtml += `<p><strong>📄 PDF에만 있는 내용:</strong></p>`;
+                diffHtml += `<div style="margin-bottom: 10px;">`;
+                differences.pdfOnly.forEach(word => {
+                    diffHtml += `<span class="diff-highlight" style="margin-right: 5px;">${word}</span>`;
+                });
+                diffHtml += `</div>`;
             }
             
             if (differences.excelOnly.length > 0) {
-                summarySection.innerHTML += `<p><strong>엑셀에만 있는 내용:</strong> <span class="diff-highlight">${differences.excelOnly.join(', ')}</span></p>`;
+                diffHtml += `<p><strong>📊 엑셀에만 있는 내용:</strong></p>`;
+                diffHtml += `<div>`;
+                differences.excelOnly.forEach(word => {
+                    diffHtml += `<span class="diff-highlight" style="margin-right: 5px;">${word}</span>`;
+                });
+                diffHtml += `</div>`;
             }
             
-            resultsContent.appendChild(summarySection);
+            diffHtml += '</div>';
+            diffContent.innerHTML = diffHtml;
         } else {
-            const noDiffElement = document.createElement('div');
-            noDiffElement.className = 'diff-item';
-            noDiffElement.style.background = '#e6ffe6';
-            noDiffElement.style.borderColor = '#44ff44';
-            noDiffElement.innerHTML = '<h3>✅ 차이점 없음</h3><p>PDF와 엑셀 파일의 내용이 일치합니다.</p>';
-            resultsContent.appendChild(noDiffElement);
+            diffContent.innerHTML = '<div style="text-align: center; color: #4caf50; font-weight: bold;">✅ 차이점 없음<br><small>PDF와 엑셀 파일의 내용이 일치합니다.</small></div>';
         }
         
-        resultsSection.style.display = 'block';
-        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        comparisonLayout.style.display = 'grid';
+        comparisonLayout.scrollIntoView({ behavior: 'smooth' });
     }
 
     function createPreviewSection(title, content) {
@@ -202,14 +213,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showError(message) {
-        resultsContent.innerHTML = `
-            <div class="diff-item error">
-                <h3>❌ 오류 발생</h3>
-                <p>${message}</p>
-            </div>
-        `;
-        resultsSection.style.display = 'block';
-        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        pdfContent.innerHTML = '<p style="color: #f44336;">❌ 오류 발생</p>';
+        excelContent.innerHTML = '<p style="color: #f44336;">❌ 오류 발생</p>';
+        diffContent.innerHTML = `<div style="color: #f44336; text-align: center;"><h4>❌ 오류 발생</h4><p>${message}</p></div>`;
+        comparisonLayout.style.display = 'grid';
+        comparisonLayout.scrollIntoView({ behavior: 'smooth' });
     }
 
     function analyzeDifferences(result) {
@@ -231,13 +239,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function extractExcelText(excelData) {
         let text = '';
         Object.keys(excelData).forEach(sheetName => {
-            excelData[sheetName].forEach(row => {
-                Object.values(row).forEach(value => {
-                    if (value && value.toString().trim()) {
-                        text += value.toString().trim() + ' ';
+            if (Array.isArray(excelData[sheetName])) {
+                excelData[sheetName].forEach(row => {
+                    if (typeof row === 'object' && row !== null) {
+                        Object.values(row).forEach(value => {
+                            if (value && value.toString().trim()) {
+                                text += value.toString().trim() + ' ';
+                            }
+                        });
                     }
                 });
-            });
+            }
         });
         return text.trim();
     }
