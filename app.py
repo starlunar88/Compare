@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, jsonify
-import pandas as pd
 import PyPDF2
 import os
 import difflib
@@ -68,52 +67,41 @@ def extract_excel_data(excel_path):
         print(f"엑셀 파일 경로: {excel_path}")
         print(f"파일 존재 여부: {os.path.exists(excel_path)}")
         
-        # 여러 방법으로 엑셀 읽기 시도
+        # openpyxl로 직접 읽기
+        from openpyxl import load_workbook
+        
         all_values = []
         
         try:
-            # 방법 1: 기본 pandas 읽기
-            df = pd.read_excel(excel_path, sheet_name=0, header=None)
-            print(f"방법1 - 데이터프레임 형태: {df.shape}")
-            print(f"방법1 - 데이터프레임 내용:\n{df}")
+            # 방법 1: openpyxl로 직접 읽기
+            wb = load_workbook(excel_path, data_only=True)
+            ws = wb.active
+            print(f"워크시트 활성화됨: {ws.title}")
             
-            for _, row in df.iterrows():
+            for row in ws.iter_rows(values_only=True):
                 for value in row:
-                    if pd.notna(value) and str(value).strip():
+                    if value is not None and str(value).strip():
                         all_values.append(str(value).strip())
                         
         except Exception as e1:
             print(f"방법1 실패: {e1}")
             
             try:
-                # 방법 2: openpyxl로 직접 읽기
-                from openpyxl import load_workbook
+                # 방법 2: 모든 시트 시도
                 wb = load_workbook(excel_path, data_only=True)
-                ws = wb.active
-                print(f"방법2 - 워크시트 활성화됨")
+                print(f"모든 시트: {wb.sheetnames}")
                 
-                for row in ws.iter_rows(values_only=True):
-                    for value in row:
-                        if value is not None and str(value).strip():
-                            all_values.append(str(value).strip())
-                            
+                for sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                    print(f"시트 '{sheet_name}' 처리 중...")
+                    
+                    for row in ws.iter_rows(values_only=True):
+                        for value in row:
+                            if value is not None and str(value).strip():
+                                all_values.append(str(value).strip())
+                                
             except Exception as e2:
                 print(f"방법2 실패: {e2}")
-                
-                try:
-                    # 방법 3: 다른 시트로 시도
-                    df = pd.read_excel(excel_path, sheet_name=None)  # 모든 시트 읽기
-                    print(f"방법3 - 모든 시트: {list(df.keys())}")
-                    
-                    for sheet_name, sheet_df in df.items():
-                        print(f"시트 '{sheet_name}' 처리 중...")
-                        for _, row in sheet_df.iterrows():
-                            for value in row:
-                                if pd.notna(value) and str(value).strip():
-                                    all_values.append(str(value).strip())
-                                    
-                except Exception as e3:
-                    print(f"방법3 실패: {e3}")
         
         print(f"추출된 모든 값: {all_values}")
         
