@@ -76,19 +76,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 엑셀 내용 표시 (중간)
+        console.log('전체 결과:', result);
+        console.log('엑셀 데이터 존재 여부:', !!result.excel_data);
+        console.log('엑셀 데이터:', result.excel_data);
+        
         if (result.excel_data && !result.excel_data.error) {
-            console.log('Excel data:', result.excel_data);
             const excelText = extractExcelText(result.excel_data);
-            console.log('Extracted Excel text:', excelText);
+            console.log('추출된 엑셀 텍스트:', excelText);
+            console.log('텍스트 길이:', excelText.length);
             
-            if (excelText) {
+            if (excelText && excelText.trim()) {
                 const highlightedExcelText = highlightDifferences(excelText, differences.excelOnly);
                 excelContent.innerHTML = highlightedExcelText;
             } else {
-                excelContent.innerHTML = '<p style="color: #666;">엑셀 내용을 불러올 수 없습니다.</p>';
+                excelContent.innerHTML = '<p style="color: #666;">엑셀에서 텍스트를 추출할 수 없습니다.</p>';
             }
         } else {
-            excelContent.innerHTML = '<p style="color: #666;">엑셀 데이터를 불러올 수 없습니다.</p>';
+            if (result.excel_data && result.excel_data.error) {
+                excelContent.innerHTML = `<p style="color: #f44336;">엑셀 오류: ${result.excel_data.error}</p>`;
+            } else {
+                excelContent.innerHTML = '<p style="color: #666;">엑셀 데이터가 없습니다.</p>';
+            }
         }
         
         // 비교 결과 표시 (오른쪽)

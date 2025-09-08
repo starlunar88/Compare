@@ -65,11 +65,17 @@ def extract_pdf_text(pdf_path):
 
 def extract_excel_data(excel_path):
     try:
+        print(f"엑셀 파일 경로: {excel_path}")
         excel_file = pd.ExcelFile(excel_path)
+        print(f"시트 이름들: {excel_file.sheet_names}")
         all_data = {}
         
         for sheet_name in excel_file.sheet_names:
+            print(f"시트 '{sheet_name}' 처리 중...")
             df = pd.read_excel(excel_path, sheet_name=sheet_name)
+            print(f"데이터프레임 형태: {df.shape}")
+            print(f"데이터프레임 내용:\n{df}")
+            
             df = df.fillna('')
             
             # 헤더를 제거하고 순수 데이터만 추출
@@ -82,10 +88,14 @@ def extract_excel_data(excel_path):
                 if row_data:  # 빈 행이 아닌 경우만 추가
                     data_rows.append(row_data)
             
+            print(f"추출된 데이터 행 수: {len(data_rows)}")
+            print(f"추출된 데이터: {data_rows}")
             all_data[sheet_name] = data_rows
         
+        print(f"최종 엑셀 데이터: {all_data}")
         return all_data
     except Exception as e:
+        print(f"엑셀 읽기 오류: {str(e)}")
         return {"error": f"엑셀 읽기 오류: {str(e)}"}
 
 def compare_text_content(pdf_text, excel_data):
